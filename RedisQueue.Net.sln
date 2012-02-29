@@ -13,6 +13,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{FA36F1
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedisQueue.Net.Clients.Tests", "RedisQueue.Net.Clients.Tests\RedisQueue.Net.Clients.Tests.csproj", "{F2BFCCC9-7F21-4086-BC79-E27009683CDB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedisQueue.Net.ServiceProvider.Tests", "RedisQueue.Net.ServiceProvider.Tests\RedisQueue.Net.ServiceProvider.Tests.csproj", "{F5E82253-C39D-4495-888F-194BC2BE034A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -31,6 +33,10 @@ Global
 		{F2BFCCC9-7F21-4086-BC79-E27009683CDB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F2BFCCC9-7F21-4086-BC79-E27009683CDB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F2BFCCC9-7F21-4086-BC79-E27009683CDB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5E82253-C39D-4495-888F-194BC2BE034A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5E82253-C39D-4495-888F-194BC2BE034A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5E82253-C39D-4495-888F-194BC2BE034A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5E82253-C39D-4495-888F-194BC2BE034A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

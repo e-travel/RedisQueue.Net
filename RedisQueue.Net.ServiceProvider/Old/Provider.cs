@@ -1,4 +1,4 @@
-﻿namespace RedisQueue.Net.ServiceProvider
+﻿namespace RedisQueue.Net.ServiceProvider.Old
 {
 	public class Provider : ServiceWrapper.ServiceProvider
 	{

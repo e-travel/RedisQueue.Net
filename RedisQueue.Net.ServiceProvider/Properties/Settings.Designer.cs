@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace RedisQueue.Net.Clients.Properties {
+namespace RedisQueue.Net.ServiceProvider.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
@@ -25,55 +25,46 @@ namespace RedisQueue.Net.Clients.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("10.0.0.202")]
-        public string RedisHost {
+        [global::System.Configuration.DefaultSettingValueAttribute("TestQueue")]
+        public string Queue {
             get {
-                return ((string)(this["RedisHost"]));
+                return ((string)(this["Queue"]));
             }
         }
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("6379")]
-        public int RedisPort {
+        [global::System.Configuration.DefaultSettingValueAttribute("60000")]
+        public int MonitorSleepIntervalInMilliseconds {
             get {
-                return ((int)(this["RedisPort"]));
+                return ((int)(this["MonitorSleepIntervalInMilliseconds"]));
             }
         }
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool TaskRecycling {
+        [global::System.Configuration.DefaultSettingValueAttribute("SampleWorker.dll")]
+        public string WorkerAssemblyPath {
             get {
-                return ((bool)(this["TaskRecycling"]));
+                return ((string)(this["WorkerAssemblyPath"]));
             }
         }
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("10")]
-        public int MaxTaskRetries {
+        [global::System.Configuration.DefaultSettingValueAttribute("SampleWorker.Performer")]
+        public string WorkerClassName {
             get {
-                return ((int)(this["MaxTaskRetries"]));
+                return ((string)(this["WorkerClassName"]));
             }
         }
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool PurgeSuccessfulTasks {
+        [global::System.Configuration.DefaultSettingValueAttribute("3")]
+        public int RetriesToUnloadAppDomain {
             get {
-                return ((bool)(this["PurgeSuccessfulTasks"]));
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("redisCache.bin")]
-        public string LocalCache {
-            get {
-                return ((string)(this["LocalCache"]));
+                return ((int)(this["RetriesToUnloadAppDomain"]));
             }
         }
     }

@@ -1,16 +1,15 @@
 ﻿using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using log4net.Config;
 
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("RedisQueue.Net.ServiceProvider")]
+[assembly: AssemblyTitle("RedisQueue.Net.ServiceProvider.Tests")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("RedisQueue.Net.ServiceProvider")]
+[assembly: AssemblyProduct("RedisQueue.Net.ServiceProvider.Tests")]
 [assembly: AssemblyCopyright("Copyright ©  2012")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -21,7 +20,7 @@ using log4net.Config;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("3042bb05-d5a9-4997-8702-7bef12296331")]
+[assembly: Guid("4d33c26e-23ea-4040-9efd-8a098137bdda")]
 
 // Version information for an assembly consists of the following four values:
 //
@@ -35,5 +34,3 @@ using log4net.Config;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: XmlConfigurator]
-[assembly: InternalsVisibleTo("RedisQueue.Net.ServiceProvider.Tests")]

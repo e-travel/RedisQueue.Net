@@ -1,21 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using RedisQueue.Net.Clients.Entities;
 using RedisQueue.Net.Clients.Exceptions;
 using RedisQueue.Net.Clients.Properties;
 using ServiceStack.Redis;
 using ServiceStack.Redis.Generic;
+using ServiceStack.Text;
 using log4net;
 
 namespace RedisQueue.Net.Clients
 {
-	public class SimpleClient
+	public class QueueClient : IQueueClient
 	{
 		/// <summary>
 		/// Log4Net logger.
 		/// </summary>
-		private static readonly ILog Log = LogManager.GetLogger(typeof(SimpleClient));
+		private static readonly ILog Log = LogManager.GetLogger(typeof(QueueClient));
 
 		/// <summary>
 		/// Typewise Redis client. Used in Queue operations.
@@ -37,15 +39,28 @@ namespace RedisQueue.Net.Clients
 		/// <summary>
 		/// The task currently reserved, if any.
 		/// </summary>
-		public TaskMessage CurrentTask { get; protected set; }
+		public virtual TaskMessage CurrentTask { get; protected internal set; }
 
-		public SimpleClient()
+		/// <summary>
+		/// Determines whether caching is enabled.
+		/// </summary>
+		protected bool LocalCachingEnabled { get; private set; }
+
+		public QueueClient() : this(true) {}
+		public QueueClient(bool enableCaching = true)
 		{
 			GenericClient = new RedisClient(Settings.Default.RedisHost, Settings.Default.RedisPort);
 			TypedClient = GenericClient.GetTypedClient<TaskMessage>();
+			
 			Log.Info("Connected to Redis.");
-			Log.DebugFormat("Connection Properties: {0}:{1}",
-				Settings.Default.RedisHost, Settings.Default.RedisPort);
+			Log.DebugFormat("Connection Properties: {0}:{1}", Settings.Default.RedisHost, Settings.Default.RedisPort);
+			
+			LocalCachingEnabled = enableCaching;
+			if (LocalCachingEnabled)
+			{
+				Log.Info("Caching 's enabled. Cache location: " + Settings.Default.LocalCache);
+				CheckCacheAndRetrieveState();
+			}
 		}
 
 		#region Queuing API
@@ -94,6 +109,8 @@ namespace RedisQueue.Net.Clients
 			Log.Info("Reserved task from [" + queue.NameWhenPending + "]");
 			Log.DebugFormat("Task Parameters: {0}", CurrentTask.Parameters);
 
+			CacheCurrentTask();
+
 			return CurrentTask;
 		}
 
@@ -111,9 +128,9 @@ namespace RedisQueue.Net.Clients
 		/// </summary>
 		public void Dispose()
 		{
-			if (State == RedisQueueState.TaskReserved)
-				// the consumer did not assert the task was succesfully completed,
-				// or something sinister has happened. Add the task to the failed tasks list.
+			// the consumer did not assert the task was succesfully completed,
+			// or something sinister has happened. Add the task to the failed tasks list.
+			if (State == RedisQueueState.TaskReserved && !LocalCachingEnabled)
 				Fail("RedisClient disposed prior to the task being completed.");
 
 			TypedClient.Dispose();
@@ -130,7 +147,7 @@ namespace RedisQueue.Net.Clients
 		/// <exception cref="NoTaskReservedException">No task has been reserved. Future failure not yet 
 		/// supported.</exception>
 		/// <exception cref="InvalidStateException">CurrentTask is null. Something's seriously off.</exception>
-		public void Fail(string reason)
+		public virtual void Fail(string reason)
 		{
 			if (State != RedisQueueState.TaskReserved)
 				throw new NoTaskReservedException("No task has been reserved. Future failure not yet supported.");
@@ -160,6 +177,7 @@ namespace RedisQueue.Net.Clients
 				}
 
 			TypedClient.Lists[targetQueue].Add(CurrentTask);
+			PurgeCache();
 
 			Log.Info("A task has failed. Moving to [" + targetQueue + "].");
 			Log.DebugFormat("Task Parameters: {0}", CurrentTask.Parameters);
@@ -172,7 +190,7 @@ namespace RedisQueue.Net.Clients
 		/// in the :failed queue.
 		/// </summary>
 		/// <param name="reason"></param>
-		public void CriticalFail(string reason)
+		public virtual void CriticalFail(string reason)
 		{
 			if (State != RedisQueueState.TaskReserved)
 				throw new NoTaskReservedException("No task has been reserved. Future failure not yet supported.");
@@ -185,8 +203,8 @@ namespace RedisQueue.Net.Clients
 			CurrentTask.UpdatedOn = DateTime.Now;
 
 			var targetQueue = new QueueName(CurrentTask.Queue).NameWhenFailed;
-
 			TypedClient.Lists[targetQueue].Add(CurrentTask);
+			PurgeCache();
 
 			Log.Info("A task has failed. Moving to [" + targetQueue + "].");
 			Log.DebugFormat("Task Parameters: {0}", CurrentTask.Parameters);
@@ -200,7 +218,7 @@ namespace RedisQueue.Net.Clients
 		/// <exception cref="InvalidStateException">CurrentTask is null. Something's seriously off.</exception>
 		/// <exception cref="NoTaskReservedException">No task has been reserved. Future success not yet 
 		/// supported.</exception>
-		public void Succeed()
+		public virtual void Succeed()
 		{
 			if (State != RedisQueueState.TaskReserved)
 				throw new NoTaskReservedException(
@@ -223,8 +241,8 @@ namespace RedisQueue.Net.Clients
 				Log.Info("A task has succeeded and will be dropped.");
 			}
 
+			PurgeCache();
 			Log.DebugFormat("Task Parameters: {0}", CurrentTask.Parameters);
-
 			State = RedisQueueState.Ready;
 		}
 
@@ -263,7 +281,7 @@ namespace RedisQueue.Net.Clients
 				throw new NoQueueSpecifiedException(
 					"Parameter <queue> is empty or null. Cannot retrieve task for no queue.");
 
-			return TypedClient.Lists[queue.NameWhenFailed];
+			return TypedClient.Lists[queue.NameWhenFailed].ToList();
 		}
 
 		/// <summary>
@@ -399,7 +417,34 @@ namespace RedisQueue.Net.Clients
 		{
 			SendMessage(message, new QueueName(queue));
 		}
+		#endregion
 
+		#region Local caching
+		protected void CacheCurrentTask()
+		{
+			if (LocalCachingEnabled)
+			{
+				var serializer = new JsonSerializer<TaskMessage>();
+				File.WriteAllText(Settings.Default.LocalCache, serializer.SerializeToString(CurrentTask));
+			}
+		}
+
+		protected void PurgeCache()
+		{
+			if (LocalCachingEnabled && File.Exists(Settings.Default.LocalCache))
+				File.Delete(Settings.Default.LocalCache);
+		}
+
+		protected void CheckCacheAndRetrieveState()
+		{
+			if (LocalCachingEnabled && File.Exists(Settings.Default.LocalCache))
+			{
+				var text = File.ReadAllText(Settings.Default.LocalCache);
+				var serializer = new JsonSerializer<TaskMessage>();
+				CurrentTask = serializer.DeserializeFromString(text);
+				State = RedisQueueState.TaskReserved;
+			}
+		}
 		#endregion
 	}
 }

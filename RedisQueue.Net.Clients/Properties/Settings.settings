@@ -17,5 +17,8 @@
     <Setting Name="PurgeSuccessfulTasks" Type="System.Boolean" Scope="Application">
       <Value Profile="(Default)">True</Value>
     </Setting>
+    <Setting Name="LocalCache" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">redisCache.bin</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

@@ -1,0 +1,21 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="RedisQueue.Net.ServiceProvider.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="Queue" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">TestQueue</Value>
+    </Setting>
+    <Setting Name="MonitorSleepIntervalInMilliseconds" Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">60000</Value>
+    </Setting>
+    <Setting Name="WorkerAssemblyPath" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">SampleWorker.dll</Value>
+    </Setting>
+    <Setting Name="WorkerClassName" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">SampleWorker.Performer</Value>
+    </Setting>
+    <Setting Name="RetriesToUnloadAppDomain" Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">3</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>
