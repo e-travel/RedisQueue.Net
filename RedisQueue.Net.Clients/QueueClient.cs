@@ -42,14 +42,27 @@ namespace RedisQueue.Net.Clients
 		public virtual TaskMessage CurrentTask { get; protected internal set; }
 
 		/// <summary>
+		/// The host name where Redis can be located.
+		/// </summary>
+		public virtual string RedisHost { get; set; }
+
+		/// <summary>
+		/// The port at which Redis listens.
+		/// </summary>
+		public virtual int RedisPort { get; set; }
+
+		/// <summary>
 		/// Determines whether caching is enabled.
 		/// </summary>
 		protected bool LocalCachingEnabled { get; private set; }
 
-		public QueueClient() : this(true) {}
-		public QueueClient(bool enableCaching = true)
+		public QueueClient() : this(Settings.Default.RedisHost, Settings.Default.RedisPort, true) {}
+		public QueueClient(string host = "127.0.0.1", int port = 6379, bool enableCaching = true)
 		{
-			GenericClient = new RedisClient(Settings.Default.RedisHost, Settings.Default.RedisPort);
+			RedisHost = host;
+			RedisPort = port;
+
+			GenericClient = new RedisClient(RedisHost, RedisPort);
 			TypedClient = GenericClient.GetTypedClient<TaskMessage>();
 			
 			Log.Info("Connected to Redis.");

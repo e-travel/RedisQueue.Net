@@ -9,6 +9,7 @@ using RedisQueue.Net.Clients;
 using RedisQueue.Net.Clients.Entities;
 using RedisQueue.Net.Clients.Exceptions;
 using RedisQueue.Net.ServiceProvider.Properties;
+using ServiceStack.Redis;
 using log4net;
 
 namespace RedisQueue.Net.ServiceProvider
@@ -19,30 +20,64 @@ namespace RedisQueue.Net.ServiceProvider
 
 		protected internal virtual bool Running { get; set; }
 		public Thread MonitorThread { get; set; }
-		protected internal QueueClient Client { get; set; }
+		public Thread SubscriberThread { get; set; }
+
+
+		protected internal QueueClient SubscriptionClient { get; set; }
+		protected internal QueueClient MonitorClient { get; set; }
+
 		public virtual Performer Performer { get; set; }
+
+		protected internal bool Working { get; set; }
+		protected internal bool Nudged { get; set; }
+
+		protected internal readonly object ThreadLock = new object();
+
+		protected internal IRedisSubscription Subscription { get; set; }
+
+		protected internal string RedisHost { get; set; }
+		protected internal int RedisPort { get; set; }
+
+		#region Ctors
 
 		public RedisMonitor()
 		{
 			InitializeWorker();
-			InitializeMonitorThread();
+			InitializeThreads();
+			InitializeClients();
 		}
 
-		public virtual void Start()
+		public RedisMonitor(string host, int port)
 		{
-			//SubscribeToQueue();
+			RedisHost = host;
+			RedisPort = port;
 
-			// Start the execution loop.
-			Running = true;
-			MonitorThread.Start();
+			InitializeWorker();
+			InitializeThreads();
+			InitializeClients();
 		}
 
-		protected void InitializeClient() { Client = new QueueClient(); }
-		protected void InitializeMonitorThread() { MonitorThread = new Thread(Run); }
+		#endregion
 
-		private void SubscribeToQueue()
+		#region Initialization
+
+		protected void InitializeClients()
 		{
-			throw new System.NotImplementedException();
+			if (!string.IsNullOrWhiteSpace(RedisHost) && RedisPort > 0)
+			{
+				MonitorClient = new QueueClient(RedisHost, RedisPort);
+				SubscriptionClient = new QueueClient(RedisHost, RedisPort);
+				return;
+			}
+
+			MonitorClient = new QueueClient();
+			SubscriptionClient = new QueueClient();
+		}
+
+		protected void InitializeThreads()
+		{
+			MonitorThread = new Thread(Run);
+			SubscriberThread = new Thread(DoSubscribe);
 		}
 
 		protected virtual void InitializeWorker()
@@ -58,38 +93,94 @@ namespace RedisQueue.Net.ServiceProvider
 				.FirstOrDefault();
 		}
 
+		#endregion
+
+		#region Messaging
+
+		protected virtual void SubscribeToQueue()
+		{
+			Subscription = SubscriptionClient.GetSubscription();
+			Subscription.OnMessage = (queue, message) =>
+			{
+				Log.Debug("Message received: " + message);
+				Nudged = (QueueSystemMessages.TaskAvailable.ToString() == message);
+				if (Nudged) MonitorThread.Interrupt();
+			};
+
+			SubscriberThread.Start();
+		}
+
+		protected virtual void UnSubscribeFromQueue()
+		{
+			SubscriberThread.Interrupt();
+		}
+
+		protected virtual void DoSubscribe()
+		{
+			IAsyncResult handle = null;
+			try
+			{
+				var queueName = new QueueName(Settings.Default.Queue);
+				handle = new Action(() => Subscription.SubscribeToChannels(queueName.ChannelName)).BeginInvoke(null, null);
+				handle.AsyncWaitHandle.WaitOne();
+			}
+			catch(ThreadInterruptedException)
+			{
+				// will throw an ObjectDisposedException on the point of invocation (the BeginInvoke() above).
+				handle.AsyncWaitHandle.Close(); 
+				Log.Debug("Stopped subscription to queue channel.");
+			}
+			catch(ObjectDisposedException)
+			{}
+		}
+
+		#endregion
+
+		#region Monitor
+
+		public virtual void Start()
+		{
+			SubscribeToQueue();
+			MonitorThread.Start();
+			Running = true;
+		}
+
 		public virtual void Stop()
 		{
+			UnSubscribeFromQueue();
+
 			Running = false;
+			MonitorThread.Interrupt();
 		}
 
 		protected internal virtual void Run()
 		{
-			while (Running)
+			while (true)
 			{
 				try
 				{
-					// Try connecting to Redis by creating a new client if we don't have any.
-					if (Client == null) InitializeClient();
-
-					ProcessPendingTasks();
-				}
-				catch (IOException exception)
-				{
-					if (exception.InnerException is SocketException)
+					try { ProcessPendingTasks(); }
+					catch (IOException exception)
 					{
-						Log.Error("Could not connect to Redis. Will sleep and attempt again in a while.", exception);
-
-						if (Client != null)
+						if (exception.InnerException is SocketException)
 						{
-							Client.Dispose();
-							Client = null;
+							Log.Error("Could not connect to Redis. Will sleep and attempt again in a while.", exception);
+
+							UnSubscribeFromQueue();
+							MonitorClient.Dispose();
+							InitializeClients();
+							SubscribeToQueue();
 						}
+						else throw;
 					}
-					else throw;
+
+					Thread.Sleep(Settings.Default.MonitorSleepIntervalInMilliseconds);
 				}
-				
-				Thread.Sleep(Settings.Default.MonitorSleepIntervalInMilliseconds);
+				catch (ThreadInterruptedException)
+				{
+					Log.Debug("Nudged awake. Resuming.");
+					if (!Running) return;
+				}
 			}
 		}
 
@@ -110,15 +201,15 @@ namespace RedisQueue.Net.ServiceProvider
 				// the task. We do what we can to preserve the task,
 				// and set it back as failed.
 				try { task.Storage = Performer.TaskStorage; }
-				catch { }
+				catch {}
 
 				var message =
 					"The performer raised an exception: "
-						+ exception.Message
-						+ "\n"
-						+ exception.StackTrace;
+					+ exception.Message
+					+ "\n"
+					+ exception.StackTrace;
 
-				Client.Fail(message);
+				MonitorClient.Fail(message);
 				Log.Error(message);
 
 				return;
@@ -133,12 +224,12 @@ namespace RedisQueue.Net.ServiceProvider
 			switch (result.Outcome)
 			{
 				case Outcome.Success:
-					Client.Succeed();
+					MonitorClient.Succeed();
 					Log.Info("Task succeeded.");
 					break;
 
 				case Outcome.Failure:
-					Client.Fail(result.Reason);
+					MonitorClient.Fail(result.Reason);
 					Log.InfoFormat("Task failed. Reason: {0}", result.Reason);
 
 					if (result.Data is Exception)
@@ -150,7 +241,7 @@ namespace RedisQueue.Net.ServiceProvider
 					break;
 
 				case Outcome.CriticalFailure:
-					Client.CriticalFail(result.Reason);
+					MonitorClient.CriticalFail(result.Reason);
 					Log.InfoFormat("Task failed critically. Reason: {0}", result.Reason);
 
 					if (result.Data is string)
@@ -170,21 +261,21 @@ namespace RedisQueue.Net.ServiceProvider
 
 			// if a task had been preserved from the previous iteration,
 			// process it before moving forward.
-			if (Client.CurrentTask != null)
+			if (MonitorClient.CurrentTask != null)
 			{
-				examinedTasks.Add(Client.CurrentTask.Identifier);
-				ProcessTask(Client.CurrentTask);
+				examinedTasks.Add(MonitorClient.CurrentTask.Identifier);
+				ProcessTask(MonitorClient.CurrentTask);
 			}
 
-			while(anyNewTasks && Running)
+			while(anyNewTasks)
 			{
 				anyNewTasks = false;
-				var taskCount = Client.PendingTasks(Settings.Default.Queue).Count;
-				for (var index = 0; index < taskCount && Running; index++)
+				var taskCount = MonitorClient.PendingTasks(Settings.Default.Queue).Count;
+				for (var index = 0; index < taskCount; index++)
 				{
 					TaskMessage task;
 
-					try { task = Client.Reserve(Settings.Default.Queue); }
+					try { task = MonitorClient.Reserve(Settings.Default.Queue); }
 					catch (QueueIsEmptyException)
 					{
 						Log.DebugFormat("No tasks in queue [{0}]", new QueueName(Settings.Default.Queue).NameWhenPending);
@@ -200,6 +291,10 @@ namespace RedisQueue.Net.ServiceProvider
 			}
 		}
 
+		#endregion
+
+		#region Utils
+
 		/// <summary>
 		/// Resolves the path to an assembly, at first trying the path from 
 		/// the current directory, then attempting to get the path from the current AppDomain's 
@@ -213,5 +308,7 @@ namespace RedisQueue.Net.ServiceProvider
 			var supposedPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, path);
 			return File.Exists(supposedPath) ? Path.GetFullPath(supposedPath) : string.Empty;
 		}
+
+		#endregion
 	}
 }
