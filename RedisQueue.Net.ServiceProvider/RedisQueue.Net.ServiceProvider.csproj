@@ -42,6 +42,7 @@
     <Reference Include="ServiceStack.Interfaces, Version=3.5.5.30073, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\ServiceStack.Common.3.5.5\lib\net35\ServiceStack.Interfaces.dll</HintPath>
     </Reference>
+    <Reference Include="ServiceStack.Redis, Version=3.5.2.5612, Culture=neutral, processorArchitecture=MSIL" />
     <Reference Include="ServiceStack.Text, Version=3.5.7.9337, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\ServiceStack.Text.3.5.7\lib\net35\ServiceStack.Text.dll</HintPath>
     </Reference>

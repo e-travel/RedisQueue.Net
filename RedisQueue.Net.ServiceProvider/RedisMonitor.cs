@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Sockets;
 using System.Reflection;
 using System.Threading;
 using RedisQueue.Net.Clients;
@@ -44,7 +43,8 @@ namespace RedisQueue.Net.ServiceProvider
 		{
 			InitializeWorker();
 			InitializeThreads();
-			InitializeClients();
+			InitializeMonitorClient();
+			InitializeSubscriptionClient();
 		}
 
 		public RedisMonitor(string host, int port)
@@ -54,23 +54,33 @@ namespace RedisQueue.Net.ServiceProvider
 
 			InitializeWorker();
 			InitializeThreads();
-			InitializeClients();
+			InitializeMonitorClient();
+			InitializeSubscriptionClient();
 		}
 
 		#endregion
 
 		#region Initialization
 
-		protected void InitializeClients()
+		protected void InitializeMonitorClient()
 		{
 			if (!string.IsNullOrWhiteSpace(RedisHost) && RedisPort > 0)
 			{
 				MonitorClient = new QueueClient(RedisHost, RedisPort);
-				SubscriptionClient = new QueueClient(RedisHost, RedisPort);
 				return;
 			}
 
 			MonitorClient = new QueueClient();
+		}
+		
+		protected void InitializeSubscriptionClient()
+		{
+			if (!string.IsNullOrWhiteSpace(RedisHost) && RedisPort > 0)
+			{
+				SubscriptionClient = new QueueClient(RedisHost, RedisPort);
+				return;
+			}
+
 			SubscriptionClient = new QueueClient();
 		}
 
@@ -118,20 +128,38 @@ namespace RedisQueue.Net.ServiceProvider
 		protected virtual void DoSubscribe()
 		{
 			IAsyncResult handle = null;
+
 			try
 			{
-				var queueName = new QueueName(Settings.Default.Queue);
-				handle = new Action(() => Subscription.SubscribeToChannels(queueName.ChannelName)).BeginInvoke(null, null);
+				handle = new Action(BlockSubscribe).BeginInvoke(null, null);
 				handle.AsyncWaitHandle.WaitOne();
 			}
 			catch(ThreadInterruptedException)
 			{
-				// will throw an ObjectDisposedException on the point of invocation (the BeginInvoke() above).
+				// will throw an ObjectDisposedException at the point of invocation (the BeginInvoke() above).
+				if (handle == null) return;
 				handle.AsyncWaitHandle.Close(); 
 				Log.Debug("Stopped subscription to queue channel.");
 			}
-			catch(ObjectDisposedException)
-			{}
+			catch(ObjectDisposedException) {}
+		}
+
+		protected virtual void BlockSubscribe()
+		{
+			try
+			{
+				var queueName = new QueueName(Settings.Default.Queue);
+				Subscription.SubscribeToChannels(queueName.ChannelName);
+			}
+
+			catch (Exception exception)
+			{
+				if (!(exception is RedisException) && !(exception is IOException)) throw;
+
+				Log.Error("IOException while listening for channel messages. Will subscribe again in a second.", exception);
+				Thread.Sleep(1000);
+				BlockSubscribe();
+			}
 		}
 
 		#endregion
@@ -160,18 +188,10 @@ namespace RedisQueue.Net.ServiceProvider
 				try
 				{
 					try { ProcessPendingTasks(); }
-					catch (IOException exception)
+					catch (Exception exception)
 					{
-						if (exception.InnerException is SocketException)
-						{
-							Log.Error("Could not connect to Redis. Will sleep and attempt again in a while.", exception);
-
-							UnSubscribeFromQueue();
-							MonitorClient.Dispose();
-							InitializeClients();
-							SubscribeToQueue();
-						}
-						else throw;
+						if (!(exception is RedisException) && !(exception is IOException)) throw;
+						Log.Error("Could not connect to Redis. Will sleep and attempt again in a while.", exception);
 					}
 
 					Thread.Sleep(Settings.Default.MonitorSleepIntervalInMilliseconds);

@@ -326,7 +326,7 @@ namespace RedisQueue.Net.ServiceProvider.Tests
 		}
 
 		[Test]
-		public void TestMonitorCanReceiveMessageFromChannel()
+		public void TestMonitorWakesUpOnMessageReceived()
 		{
 			var task = new TaskMessage
 			{
@@ -346,6 +346,9 @@ namespace RedisQueue.Net.ServiceProvider.Tests
 
 			var monitor = new RedisMonitor();
 			monitor.Performer = performerMock.Object;
+
+			var start = DateTime.Now;
+
 			monitor.Start();
 			Assert.IsTrue(monitor.Running);
 
@@ -353,6 +356,60 @@ namespace RedisQueue.Net.ServiceProvider.Tests
 				client.Enqueue(task);
 
 			monitor.Stop();
+			Assert.IsFalse(monitor.Running);
+
+			var stop = DateTime.Now;
+			Assert.Less((stop - start).TotalSeconds, 60);
+		}
+
+		[Test]
+		public void TestMonitorCanRecoverFromRedisOutage()
+		{
+			var task = new TaskMessage
+			{
+				Parameters = "blah",
+				Queue = "TestQueue"
+			};
+			
+			var task2 = new TaskMessage
+			{
+				Parameters = "blah",
+				Queue = "TestQueue"
+			};
+
+			var performerMock = new Mock<Performer>();
+			performerMock.SetupGet(x => x.Status).Returns(new PerformResult
+			{
+				Data = string.Empty,
+				Outcome = Outcome.Success,
+				Reason = string.Empty
+			});
+
+			performerMock.Setup(x => x.Perform(task.Parameters));
+			performerMock.Setup(x => x.Perform(task2.Parameters));
+
+			var monitor = new RedisMonitor();
+			monitor.Performer = performerMock.Object;
+
+			monitor.Start();
+			Assert.IsTrue(monitor.Running);
+
+			using (var client = new QueueClient())
+				client.Enqueue(task);
+
+			Thread.Sleep(1500);
+			RedisServer.Kill();
+			
+			Thread.Sleep(100);
+			RedisServer.Start();
+			
+			Thread.Sleep(2000);
+			using (var client = new QueueClient())
+				client.Enqueue(task2);
+
+			Thread.Sleep(10000);
+			monitor.Stop();
+
 			Assert.IsFalse(monitor.Running);
 		}
 	}
