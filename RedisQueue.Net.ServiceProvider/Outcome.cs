@@ -5,6 +5,7 @@ namespace RedisQueue.Net.ServiceProvider
 		NotStarted,
 		Success,
 		Failure,
-		CriticalFailure
+		CriticalFailure,
+        Defer
 	}
 }

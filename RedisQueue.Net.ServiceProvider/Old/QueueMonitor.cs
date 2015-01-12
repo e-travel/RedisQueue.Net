@@ -182,6 +182,12 @@ namespace RedisQueue.Net.ServiceProvider.Old
 									if (taskResult.Data is string)
 										Log.InfoFormat("Additional Information: {0}", taskResult.Data);
 									break;
+                                case Outcome.Defer:
+							        Queue.Defer(taskResult.Reason);
+                                    Log.InfoFormat("Task deferred. Reason: {0}", taskResult.Reason);
+                                    if (taskResult.Data is string)
+                                        Log.InfoFormat("Additional Information: {0}", taskResult.Data);
+							        break;
 							}
 
 							// if Stop() was invoked, break and let the parent loop handle it

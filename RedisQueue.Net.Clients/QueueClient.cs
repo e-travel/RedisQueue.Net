@@ -198,6 +198,36 @@ namespace RedisQueue.Net.Clients
 			State = RedisQueueState.Ready;
 		}
 
+        /// <summary>
+        /// Marks the currently reserved task as Deferred.
+        /// </summary>
+        /// <param name="reason"></param>
+        /// <exception cref="NoTaskReservedException">No task has been reserved. Future failure not yet 
+        /// supported.</exception>
+        /// <exception cref="InvalidStateException">CurrentTask is null. Something's seriously off.</exception>
+        public virtual void Defer(string reason)
+        {
+            if (State != RedisQueueState.TaskReserved)
+                throw new NoTaskReservedException("No task has been reserved. Future failure not yet supported.");
+
+            if (CurrentTask == null)
+                throw new InvalidStateException("CurrentTask is null. Something's seriously off.");
+
+            CurrentTask.Status = TaskStatus.NotStarted;
+            CurrentTask.Reason = reason;
+            CurrentTask.UpdatedOn = DateTime.Now;
+
+            var queue = new QueueName(CurrentTask.Queue);
+            TypedClient.Lists[queue.NameWhenPending].Add(CurrentTask);
+            PurgeCache();
+
+            Log.Info("A task has failed. Moving to [" + queue.NameWhenPending + "].");
+            Log.DebugFormat("Task Parameters: {0}", CurrentTask.Parameters);
+
+            State = RedisQueueState.Ready;
+        }
+
+
 		/// <summary>
 		/// Marks the current task as failed, and regardless of the cycling setting, places it 
 		/// in the :failed queue.

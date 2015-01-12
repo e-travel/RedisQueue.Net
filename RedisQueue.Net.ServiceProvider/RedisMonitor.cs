@@ -259,7 +259,6 @@ namespace RedisQueue.Net.ServiceProvider
 						Log.InfoFormat("Additional Information: {0}", result.Data);
 
 					break;
-
 				case Outcome.CriticalFailure:
 					MonitorClient.CriticalFail(result.Reason);
 					Log.InfoFormat("Task failed critically. Reason: {0}", result.Reason);
@@ -268,6 +267,14 @@ namespace RedisQueue.Net.ServiceProvider
 						Log.InfoFormat("Additional Information: {0}", result.Data);
 
 					break;
+
+                case Outcome.Defer:
+                    MonitorClient.Defer(result.Reason);
+                    Log.InfoFormat("Task deferred. Reason: {0}", result.Reason);
+
+                    if (result.Data is string)
+                        Log.InfoFormat("Additional Information: {0}", result.Data);
+			        break;
 			}
 		}
 

@@ -156,6 +156,42 @@ namespace RedisQueue.Net.ServiceProvider.Tests
 					+ exception.StackTrace));
 		}
 
+        [Test]
+        public void TestProcessTaskDeferred()
+        {
+            var monitor = new RedisMonitor();
+            var task = new TaskMessage
+            {
+                Parameters = "Test Params",
+                Queue = "TestQueue"
+            };
+
+            // Setup the Performer mock.
+            var performerMock = new Mock<Performer>();
+            performerMock.Setup(x => x.Perform(task.Parameters));
+            performerMock.SetupGet(x => x.Status).Returns(new PerformResult
+            {
+                Data = string.Empty,
+                Outcome = Outcome.Defer,
+                Reason = string.Empty
+            });
+
+            // Setup the Client mock.
+            var clientMock = new Mock<QueueClient>();
+            clientMock.Setup(x => x.Fail(string.Empty));
+            clientMock.SetupGet(x => x.RedisHost).Returns("127.0.0.1");
+            clientMock.SetupGet(x => x.RedisPort).Returns(6379);
+
+            monitor.Performer = performerMock.Object;
+            monitor.MonitorClient = clientMock.Object;
+
+            monitor.ProcessTask(task);
+
+            performerMock.Verify(x => x.Perform(task.Parameters));
+            performerMock.VerifyGet(x => x.TaskStorage);
+            clientMock.Verify(x => x.Defer(string.Empty));
+        }
+
 		[Test]
 		public void TestProcessTaskFailure()
 		{
