@@ -90,8 +90,11 @@ namespace RedisQueue.Net.ServiceProvider.Old
 				// if it's not done by now, abort it.
 				MonitorThread.Abort();
 
-				// fail the current task.
-				Queue.Fail("Service is stopping.");
+                // fail the current task.
+			    if (Queue.CurrentTask != null)
+			    {
+			        Queue.Fail("Service is stopping.");
+			    }
 
 				// Attempt to release the application domain, if it 's there.
 				releaseAppDomain();
