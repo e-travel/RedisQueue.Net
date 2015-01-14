@@ -66,7 +66,7 @@ namespace RedisQueue.Net.ServiceProvider
 		{
 			if (!string.IsNullOrWhiteSpace(RedisHost) && RedisPort > 0)
 			{
-				MonitorClient = new QueueClient(RedisHost, RedisPort);
+				MonitorClient = new QueueClient(RedisHost, RedisPort, true);
 				return;
 			}
 
@@ -77,7 +77,7 @@ namespace RedisQueue.Net.ServiceProvider
 		{
 			if (!string.IsNullOrWhiteSpace(RedisHost) && RedisPort > 0)
 			{
-				SubscriptionClient = new QueueClient(RedisHost, RedisPort);
+				SubscriptionClient = new QueueClient(RedisHost, RedisPort, true);
 				return;
 			}
 

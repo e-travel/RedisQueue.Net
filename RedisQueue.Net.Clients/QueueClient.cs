@@ -56,8 +56,16 @@ namespace RedisQueue.Net.Clients
 		/// </summary>
 		protected bool LocalCachingEnabled { get; private set; }
 
+        /// <summary>
+        /// Uses app settings for RedisHost and RedisPort, enables local caching
+        /// </summary>
 		public QueueClient() : this(Settings.Default.RedisHost, Settings.Default.RedisPort, true) {}
-		public QueueClient(string host = "127.0.0.1", int port = 6379, bool enableCaching = true)
+        /// <summary>
+        /// Uses app settings for RedisHost and RedisPort
+        /// </summary>
+        /// <param name="enableLocalCaching">Enable/Disable local caching</param>
+		public QueueClient(bool enableLocalCaching) : this(Settings.Default.RedisHost, Settings.Default.RedisPort, enableLocalCaching) {}
+		public QueueClient(string host, int port, bool enableCaching)
 		{
 			RedisHost = host;
 			RedisPort = port;
