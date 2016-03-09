@@ -1,6 +1,5 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedisQueue.Net.Clients", "RedisQueue.Net.Clients\RedisQueue.Net.Clients.csproj", "{0C1D3332-1A36-401E-B5B0-B4B2838989E9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedisQueue.Net.ServiceProvider", "RedisQueue.Net.ServiceProvider\RedisQueue.Net.ServiceProvider.csproj", "{FAA8FAE0-4023-4AA5-A127-A9666745795D}"
