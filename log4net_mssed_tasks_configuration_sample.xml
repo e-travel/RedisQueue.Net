@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<log4net>
+  <appender name="TasksNotEnqueuedLogFileAppender" type="log4net.Appender.RollingFileAppender">
+    <param name="File" value="log/log"/>
+    <lockingModel type="log4net.Appender.FileAppender+MinimalLock"/>
+    <param name="AppendToFile" value="true"/>
+    <param name="DatePattern" value="-yyyy.MM.dd"/>
+    <param name="RollingStyle" value="Date"/>
+    <param name="StaticLogFileName" value="false"/>
+    <layout type="log4net.Layout.PatternLayout">
+      <conversionPattern value="%message%newline"/>
+    </layout>
+  </appender>
+
+  <logger name="TasksNotEnqueuedLogger">
+    <level value="INFO"/>
+    <appender-ref ref="TasksNotEnqueuedLogFileAppender" />
+  </logger>
+</log4net>

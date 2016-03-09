@@ -1,5 +1,8 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedisQueue.Net.Clients", "RedisQueue.Net.Clients\RedisQueue.Net.Clients.csproj", "{0C1D3332-1A36-401E-B5B0-B4B2838989E9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedisQueue.Net.ServiceProvider", "RedisQueue.Net.ServiceProvider\RedisQueue.Net.ServiceProvider.csproj", "{FAA8FAE0-4023-4AA5-A127-A9666745795D}"
@@ -13,6 +16,11 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedisQueue.Net.Clients.Tests", "RedisQueue.Net.Clients.Tests\RedisQueue.Net.Clients.Tests.csproj", "{F2BFCCC9-7F21-4086-BC79-E27009683CDB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedisQueue.Net.ServiceProvider.Tests", "RedisQueue.Net.ServiceProvider.Tests\RedisQueue.Net.ServiceProvider.Tests.csproj", "{F5E82253-C39D-4495-888F-194BC2BE034A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Configuration Samples", "Configuration Samples", "{50077D4B-4065-4096-971E-4D93523B0F11}"
+	ProjectSection(SolutionItems) = preProject
+		log4net_mssed_tasks_configuration_sample.xml = log4net_mssed_tasks_configuration_sample.xml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using log4net;
 using RedisQueue.Net.Clients.Entities;
 using RedisQueue.Net.Clients.Exceptions;
 using RedisQueue.Net.Clients.Properties;
 using ServiceStack.Redis;
 using ServiceStack.Redis.Generic;
 using ServiceStack.Text;
-using log4net;
 
 namespace RedisQueue.Net.Clients
 {
@@ -18,6 +18,11 @@ namespace RedisQueue.Net.Clients
 		/// Log4Net logger.
 		/// </summary>
 		private static readonly ILog Log = LogManager.GetLogger(typeof(QueueClient));
+
+        /// <summary>
+        /// This logger will receive tasks that could not be enqueued.
+        /// </summary>
+        private static readonly ILog TasksNotEnqueuedLog = LogManager.GetLogger("TasksNotEnqueuedLogger");
 
 		/// <summary>
 		/// Typewise Redis client. Used in Queue operations.
@@ -98,11 +103,25 @@ namespace RedisQueue.Net.Clients
 
 			var queue = new QueueName(t.Queue);
 
-			TypedClient.Lists[queue.NameWhenPending].Add(t);
-			SendMessage(QueueSystemMessages.TaskAvailable.ToString(), queue);
+		    try
+		    {
+                TypedClient.Lists[queue.NameWhenPending].Add(t);
+                SendMessage(QueueSystemMessages.TaskAvailable.ToString(), queue);
 
-			Log.Info("New task in [" + queue.NameWhenPending + "]");
-			Log.DebugFormat("Task Parameters: {0}", t.Parameters);
+                Log.Info("New task in [" + queue.NameWhenPending + "]");
+                Log.DebugFormat("Task Parameters: {0}", t.Parameters);
+            }
+		    catch (IOException)
+		    {
+		        TasksNotEnqueuedLog.Info(new JsonSerializer<TaskMessage>().SerializeToString(t));
+		        throw;
+		    }
+		    catch (RedisException)
+		    {
+		        TasksNotEnqueuedLog.Info(new JsonSerializer<TaskMessage>().SerializeToString(t));
+		        throw;
+		    }
+
 		}
 
 		/// <summary>
