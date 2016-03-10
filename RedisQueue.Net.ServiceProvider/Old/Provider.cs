@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading;
+using log4net;
 using RedisQueue.Net.Clients.Entities;
-using ServiceStack.Logging;
 
 namespace RedisQueue.Net.ServiceProvider.Old
 {
@@ -9,7 +9,7 @@ namespace RedisQueue.Net.ServiceProvider.Old
 	{
         private readonly QueueMonitor _monitor;
         private readonly QueueSubscriber _subscriber;
-	    private readonly log4net.ILog _log = log4net.LogManager.GetLogger(typeof (ServiceWrapper.ServiceWrapper));
+	    private readonly ILog _log = LogManager.GetLogger(typeof (ServiceWrapper.ServiceWrapper));
 
 	    public Provider()
 	    {

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -6,6 +7,7 @@ using System.Threading;
 using NUnit.Framework;
 using RedisQueue.Net.Clients.Entities;
 using RedisQueue.Net.Clients.Exceptions;
+using ServiceStack.Text;
 
 namespace RedisQueue.Net.Clients.Tests
 {
@@ -249,6 +251,44 @@ namespace RedisQueue.Net.Clients.Tests
             Assert.AreEqual(deletedTasks, 100);
         }
 
+
+        [Test, Ignore]
+        public void TestEnqueueTasksContinuously()
+        {
+            QueueClient client;
+            while(true)
+            {
+                try
+                {
+                    client = new QueueClient("10.227.1.23", 6379, false);
+                    client.Enqueue(new TaskMessage
+                    {
+                        Parameters = "params",
+                        Queue = "TestQueue"
+                    });
+
+                    Console.WriteLine("Task dispatched...");
+
+                    Thread.Sleep(100);
+                }
+                catch (Exception exception)
+                {
+                    Console.WriteLine(exception);
+                }
+            }
+
+            //Assert.AreEqual(client.AllTasks("TestQueue").Count, 100);
+
+            //var deletedTasks = 0;
+            //while (client.AllTasks("TestQueue").Count > 0)
+            //{
+            //    client.RemoveTask(client.AllTasks("TestQueue")[0]);
+            //    deletedTasks++;
+            //}
+
+            //Assert.AreEqual(deletedTasks, 100);
+        }
+
         [Test]
         public void TestThrowsExceptionOnRedisDeath()
         {
@@ -365,11 +405,10 @@ namespace RedisQueue.Net.Clients.Tests
             {
                 // using a new client, read the task again.
                 var task = client.PendingTasks("TestQueue")[0];
-
                 Assert.AreEqual(task.Parameters, "Test Params");
-
                 client.RemoveTask(client.AllTasks("TestQueue")[0]);
             }
         }
+        
     }
 }

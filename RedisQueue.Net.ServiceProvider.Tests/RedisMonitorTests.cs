@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using Moq;
@@ -447,6 +449,8 @@ namespace RedisQueue.Net.ServiceProvider.Tests
 			monitor.Stop();
 
 			Assert.IsFalse(monitor.Running);
+		    SetUp();
+            Assert.That(Process.GetProcessesByName("fixtures\\Redis.64bit\\redis-server.exe").Length == 1);
 		}
 	}
 }

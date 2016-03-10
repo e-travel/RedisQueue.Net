@@ -121,7 +121,6 @@ namespace RedisQueue.Net.Clients
 		        TasksNotEnqueuedLog.Info(new JsonSerializer<TaskMessage>().SerializeToString(t));
 		        throw;
 		    }
-
 		}
 
 		/// <summary>
